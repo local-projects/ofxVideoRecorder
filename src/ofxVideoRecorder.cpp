@@ -197,9 +197,9 @@ bool ofxVideoRecorder::setup(string fname, int w, int h, float fps, int sampleRa
     stringstream outputSettings;
     outputSettings
     << " -vcodec " << videoCodec
-    << " -b " << videoBitrate
+    << " -b:v " << videoBitrate
     << " -acodec " << audioCodec
-    << " -ab " << audioBitrate
+    << " -b:a " << audioBitrate
     << " " << absFilePath;
 
     return setupCustomOutput(w, h, fps, sampleRate, channels, outputSettings.str(), sysClockSync, silent);
