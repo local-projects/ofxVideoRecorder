@@ -171,4 +171,7 @@ private:
     static set<int> openPipes;
     static int requestPipeNumber();
     static void retirePipeNumber(int num);
+
+    static string getVideoPipePath(int num);
+    static string getAudioPipePath(int num);
 };

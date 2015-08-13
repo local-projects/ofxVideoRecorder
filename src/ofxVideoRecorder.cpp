@@ -241,7 +241,7 @@ bool ofxVideoRecorder::setupCustomOutput(int w, int h, float fps, int sampleRate
         frameRate = fps;
 
         // recording video, create a FIFO pipe
-        videoPipePath = ofFilePath::getAbsolutePath("ofxvrpipe" + ofToString(pipeNumber));
+        videoPipePath = getVideoPipePath(pipeNumber);
         if(!ofFile::doesFileExist(videoPipePath)){
             string cmd = "bash --login -c 'mkfifo " + videoPipePath + "'";
             system(cmd.c_str());
@@ -254,7 +254,7 @@ bool ofxVideoRecorder::setupCustomOutput(int w, int h, float fps, int sampleRate
         audioChannels = channels;
 
         // recording video, create a FIFO pipe
-        audioPipePath = ofFilePath::getAbsolutePath("ofxarpipe" + ofToString(pipeNumber));
+        audioPipePath = getAudioPipePath(pipeNumber);
         if(!ofFile::doesFileExist(audioPipePath)){
             string cmd = "bash --login -c 'mkfifo " + audioPipePath + "'";
             system(cmd.c_str());
@@ -463,6 +463,7 @@ void ofxVideoRecorder::close()
         audioThread.close();
     }
 
+    // remove the pipe
     retirePipeNumber(pipeNumber);
 
     ffmpegThread.waitForThread();
@@ -491,4 +492,24 @@ void ofxVideoRecorder::retirePipeNumber(int num){
     if(!openPipes.erase(num)){
         ofLogNotice() << "ofxVideoRecorder::retirePipeNumber(): trying to retire a pipe number that is not being tracked: " << num << endl;
     }
+
+    // remove pipe files
+    string videoPipe = getVideoPipePath(num);
+    if (ofFile::doesFileExist(videoPipe)) {
+        ofFile::removeFile(videoPipe);
+    }
+    string audioPipe = getAudioPipePath(num);
+    if (ofFile::doesFileExist(audioPipe)) {
+        ofFile::removeFile(audioPipe);
+    }
+}
+
+string ofxVideoRecorder::getVideoPipePath(int num)
+{
+    return ofFilePath::getAbsolutePath("ofxvrpipe" + ofToString(num));
+}
+
+string ofxVideoRecorder::getAudioPipePath(int num)
+{
+    return ofFilePath::getAbsolutePath("ofxarpipe" + ofToString(num));
 }
