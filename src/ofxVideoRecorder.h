@@ -4,6 +4,8 @@
 #include "Poco/Condition.h"
 #include <set>
 
+//--------------------------------------------------------------
+//--------------------------------------------------------------
 template <typename T>
 struct lockFreeQueue {
     lockFreeQueue(){
@@ -28,8 +30,8 @@ struct lockFreeQueue {
         return false;
     }
     int size() { return distance(iHead,iTail)-1; }
-    typename std::list<T>::iterator getHead() {return iHead; }
-    typename std::list<T>::iterator getTail() {return iTail; }
+    typename std::list<T>::iterator getHead() { return iHead; }
+    typename std::list<T>::iterator getTail() { return iTail; }
 
 
 private:
@@ -43,8 +45,10 @@ public:
     execThread();
     void setup(string command);
     void threadedFunction();
+    bool isInitialized() { return initialized; }
 private:
     string execCommand;
+    bool initialized;
 };
 
 struct audioFrameShort {
@@ -52,16 +56,25 @@ struct audioFrameShort {
     int size;
 };
 
+//--------------------------------------------------------------
+//--------------------------------------------------------------
 class ofxVideoDataWriterThread : public ofThread {
 public:
     ofxVideoDataWriterThread();
-//    void setup(ofFile *file, lockFreeQueue<ofPixels *> * q);
-    void setup(string filePath, lockFreeQueue<ofPixels *> * q);
-    void threadedFunction();
+#if defined( TARGET_OSX ) || defined( TARGET_LINUX )
+	//    void setup(ofFile *file, lockFreeQueue<ofPixels *> * q);
+	void setup(string filePath, lockFreeQueue<ofPixels *> * q);
+#elif defined(TARGET_WIN32)
+	void setup(HANDLE pipeHandle, lockFreeQueue<ofPixels *> * q);
+	HANDLE videoHandle;
+	//HANDLE fileHandle;
+#endif
+	void threadedFunction();
     void signal();
     void setPipeNonBlocking();
     bool isWriting() { return bIsWriting; }
     void close() { bClose = true; stopThread(); signal(); }
+    bool bNotifyError;
 private:
     ofMutex conditionMutex;
     Poco::Condition condition;
@@ -73,16 +86,25 @@ private:
     bool bClose;
 };
 
+//--------------------------------------------------------------
+//--------------------------------------------------------------
 class ofxAudioDataWriterThread : public ofThread {
 public:
     ofxAudioDataWriterThread();
+#if defined( TARGET_OSX ) || defined( TARGET_LINUX )
 //    void setup(ofFile *file, lockFreeQueue<audioFrameShort *> * q);
     void setup(string filePath, lockFreeQueue<audioFrameShort *> * q);
-    void threadedFunction();
+#elif defined(TARGET_WIN32)
+	void setup(HANDLE pipeHandle, lockFreeQueue<audioFrameShort *> * q);
+	HANDLE audioHandle;
+	//HANDLE fileHandle;
+#endif
+	void threadedFunction();
     void signal();
     void setPipeNonBlocking();
     bool isWriting() { return bIsWriting; }
     void close() { bClose = true; stopThread(); signal();  }
+    bool bNotifyError;
 private:
     ofMutex conditionMutex;
     Poco::Condition condition;
@@ -94,20 +116,40 @@ private:
     bool bClose;
 };
 
-class ofxVideoRecorder
+
+//--------------------------------------------------------------
+//--------------------------------------------------------------
+class ofxVideoRecorderOutputFileCompleteEventArgs
+: public ofEventArgs
+{
+public:
+    string fileName;
+};
+
+//--------------------------------------------------------------
+//--------------------------------------------------------------
+class ofxVideoRecorder  : public ofThread
 {
 public:
     ofxVideoRecorder();
+
+    void threadedFunction();
+
+    ofEvent<ofxVideoRecorderOutputFileCompleteEventArgs> outputFileCompleteEvent;
+
     bool setup(string fname, int w, int h, float fps, int sampleRate=0, int channels=0, bool sysClockSync=false, bool silent=false);
     bool setupCustomOutput(int w, int h, float fps, string outputString, bool sysClockSync=false, bool silent=false);
     bool setupCustomOutput(int w, int h, float fps, int sampleRate, int channels, string outputString, bool sysClockSync=false, bool silent=false);
-    void setQuality(ofImageQualityType q);
-    void addFrame(const ofPixels &pixels);
+
+    bool addFrame(const ofPixels &pixels);
     void addAudioSamples(float * samples, int bufferSize, int numChannels);
 
     void start();
     void close();
     void setPaused(bool bPause);
+
+    bool hasVideoError();
+    bool hasAudioError();
 
     void setFfmpegLocation(string loc) { ffmpegLocation = loc; }
     void setVideoCodec(string codec) { videoCodec = codec; }
@@ -164,6 +206,8 @@ private:
     ofxVideoDataWriterThread videoThread;
     ofxAudioDataWriterThread audioThread;
     execThread ffmpegThread;
+	execThread ffmpegVideoThread;
+	execThread ffmpegAudioThread;
 //    ofFile videoPipe, audioPipe;
     int videoPipeFd, audioPipeFd;
     int pipeNumber;
@@ -172,6 +216,53 @@ private:
     static int requestPipeNumber();
     static void retirePipeNumber(int num);
 
-    static string getVideoPipePath(int num);
-    static string getAudioPipePath(int num);
+    void outputFileComplete();
+	static string getVideoPipePath(int num);
+	static string getAudioPipePath(int num);
+
+#ifdef TARGET_WIN32
+	std::wstring convertNarrowToWide(const std::string& as) {
+		if (as.empty())    return std::wstring();
+		size_t reqLength = ::MultiByteToWideChar(CP_UTF8, 0, as.c_str(), (int)as.length(), 0, 0);
+		std::wstring ret(reqLength, L'\0');
+		::MultiByteToWideChar(CP_UTF8, 0, as.c_str(), (int)as.length(), &ret[0], (int)ret.length());
+		return ret;
+	}
+
+	wchar_t *convertCharArrayToLPCWSTR(const char* charArray)
+	{
+		wchar_t* wString = new wchar_t[4096];
+		MultiByteToWideChar(CP_ACP, 0, charArray, -1, wString, 4096);
+		return wString;
+	}
+
+	std::string convertWideToNarrow(const wchar_t *s, char dfault = '?',
+		const std::locale& loc = std::locale())
+	{
+		std::ostringstream stm;
+
+		while (*s != L'\0') {
+			stm << std::use_facet< std::ctype<wchar_t> >(loc).narrow(*s++, dfault);
+		}
+		return stm.str();
+	}
+	bool runCustomScript(string script)
+	{
+		stringstream cmd;
+		cmd << ffmpegLocation << " -y ";
+
+
+		ofLogNotice("FFMpeg Command") << script << endl;
+		ffmpegThread.setup(script);
+
+		bIsInitialized = true;
+
+		return bIsInitialized;
+	}
+#endif
+
+#ifdef TARGET_WIN32
+	string movFileExt = ".mp4";
+	string audioFileExt = ".m4a";
+#endif
 };
