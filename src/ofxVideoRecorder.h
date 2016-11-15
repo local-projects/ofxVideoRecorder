@@ -149,10 +149,13 @@ public:
     void setVideoBitrate(string bitrate) { videoBitrate = bitrate; }
     void setAudioBitrate(string bitrate) { audioBitrate = bitrate; }
     
-    void setPixelFormat( string pixelF){ //rgb24 || gray, default is rgb24
-        pixelFormat = pixelF;
+    void setInputPixelFormat( string pixelF){ //rgb24 || gray, default is rgb24
+        inPixelFormat = pixelF;
     };
-    
+	void setOutputPixelFormat(string pixelF) { // default is yuv420p
+		outPixelFormat = pixelF;
+	};
+
     unsigned long long getNumVideoFramesRecorded() { return videoFramesRecorded; }
     unsigned long long getNumAudioSamplesRecorded() { return audioSamplesRecorded; }
     
@@ -173,7 +176,8 @@ private:
     string moviePath;
     string videoPipePath, audioPipePath;
     string ffmpegLocation;
-    string videoCodec, audioCodec, videoBitrate, audioBitrate, pixelFormat;
+    string videoCodec, audioCodec, videoBitrate, audioBitrate;
+	string inPixelFormat, outPixelFormat;
     int width, height, sampleRate, audioChannels;
     float frameRate;
     
@@ -317,7 +321,6 @@ public:
     bool setupCustomOutput(int w, int h, float fps, string outputString, bool sysClockSync = false, bool silent = false);
     bool setupCustomOutput(int w, int h, float fps, int sampleRate, int channels, string outputString, bool sysClockSync = false, bool silent = false);
     bool runCustomScript(string script);
-    void setQuality(ofImageQualityType q);
     bool addFrame(const ofPixels &pixels);
     void addAudioSamples(float * samples, int bufferSize, int numChannels);
     
@@ -333,9 +336,13 @@ public:
     void setVideoBitrate(string bitrate) { videoBitrate = bitrate; }
     void setAudioBitrate(string bitrate) { audioBitrate = bitrate; }
     
-    void setPixelFormat(string pixelF) { //rgb24 || gray, default is rgb24
-        pixelFormat = pixelF;
+    void setInputPixelFormat(string pixelF) { //rgb24 || gray, default is rgb24
+        inPixelFormat = pixelF;
     };
+	void setOutputPixelFormat(string pixelF) { // default is yuv420p
+		outPixelFormat = pixelF;
+	}
+
     
     unsigned long long getNumVideoFramesRecorded() { return videoFramesRecorded; }
     unsigned long long getNumAudioSamplesRecorded() { return audioSamplesRecorded; }
@@ -390,7 +397,9 @@ private:
     string audioFileExt;
     string videoPipePath, audioPipePath;
     string ffmpegLocation;
-    string videoCodec, audioCodec, videoBitrate, audioBitrate, pixelFormat;
+    string videoCodec, audioCodec, videoBitrate, audioBitrate;
+	string inPixelFormat, outPixelFormat;
+
     int width, height, sampleRate, audioChannels;
     float frameRate;
     

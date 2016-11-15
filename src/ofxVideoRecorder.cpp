@@ -215,7 +215,8 @@ ofxVideoRecorder::ofxVideoRecorder(){
     audioCodec = "pcm_s16le";
     videoBitrate = "2000k";
     audioBitrate = "128k";
-    pixelFormat = "rgb24";
+	inPixelFormat = "rgb24";
+	outPixelFormat = "yuv420p";
 }
 
 //--------------------------------------------------------------
@@ -310,7 +311,7 @@ bool ofxVideoRecorder::setupCustomOutput(int w, int h, float fps, int sampleRate
         cmd << " -an";
     }
     if(bRecordVideo){ // video input options and file
-        cmd << " -r "<< fps << " -s " << w << "x" << h << " -f rawvideo -pix_fmt " << pixelFormat <<" -i " << videoPipePath << " -r " << fps;
+        cmd << " -r "<< fps << " -s " << w << "x" << h << " -pix_fmt "<<inPixelFormat<<" -f rawvideo "<<" -i " << videoPipePath << " -pix_fmt "<<outPixelFormat<<" -r " << fps;
     }
     else { // no video stream
         cmd << " -vn";
@@ -829,7 +830,8 @@ ofxVideoRecorder::ofxVideoRecorder()
     audioCodec = "pcm_s16le";
     videoBitrate = "2000k";
     audioBitrate = "128k";
-    pixelFormat = "rgb24";
+    inPixelFormat = "rgb24";
+	outPixelFormat = "yuv420p";
     movFileExt = ".mp4";
     audioFileExt = ".m4a";
     aThreadRunning = false;
@@ -996,8 +998,8 @@ bool ofxVideoRecorder::setupCustomOutput(int w, int h, float fps, int sampleRate
         // Video Thread
         
         stringstream vCmd;
-        vCmd << ffmpegLocation << " -y " << " -r " << fps << " -s " << w << "x" << h << " -f rawvideo -pix_fmt " << pixelFormat;
-        vCmd << " -i " << convertWideToNarrow(vPipename) << " -vcodec " << videoCodec << " -b:v " << videoBitrate << " " << outputString << "_vtemp" << movFileExt;
+        vCmd << ffmpegLocation << " -y " << " -r " << fps << " -s " << w << "x" << h << " -pix_fmt " << inPixelFormat<<" -f rawvideo ";
+        vCmd << " -i " << convertWideToNarrow(vPipename) << " -pix_fmt "<<outPixelFormat<<" -vcodec " << videoCodec << " -b:v " << videoBitrate << " " << outputString << "_vtemp" << movFileExt;
         
         ffmpegVideoThread.setup(vCmd.str());
         ofLogNotice("FFMpeg Command2") << vCmd.str() << endl;
@@ -1039,8 +1041,8 @@ bool ofxVideoRecorder::setupCustomOutput(int w, int h, float fps, int sampleRate
             cmd << " -an";
         }
         if (bRecordVideo) { // video input options and file
-            cmd << " -r " << fps << " -s " << w << "x" << h << " -f rawvideo -pix_fmt " << pixelFormat << " -i " << convertWideToNarrow(vPipename);
-        }
+              cmd << " -r " << fps << " -s " << w << "x" << h << " -pix_fmt "<<inPixelFormat<<" -f rawvideo"<< " -i " << convertWideToNarrow(vPipename)<<" -pix_fmt " << outPixelFormat ;
+		}
         else { // no video stream
             cmd << " -vn";
         }
