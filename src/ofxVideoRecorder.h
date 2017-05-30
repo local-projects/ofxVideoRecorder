@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ofMain.h"
-#include "Poco/Condition.h"
+//#include "Poco/Condition.h"
 #include <set>
 
 #ifdef TARGET_WIN32
@@ -281,8 +281,8 @@ public:
     void close() { bClose = true; stopThread(); signal(); }
     bool bNotifyError;
 private:
-    ofMutex conditionMutex;
-    Poco::Condition condition;
+    std::mutex conditionMutex;
+    std::condition_variable condition;
     string filePath;
     int fd;
     lockFreeQueue<ofPixels *> * queue;
@@ -304,8 +304,8 @@ public:
     void close() { bClose = true; stopThread(); signal(); }
     bool bNotifyError;
 private:
-    ofMutex conditionMutex;
-    Poco::Condition condition;
+    std::mutex conditionMutex;
+    std::condition_variable condition;
     string filePath;
     int fd;
     lockFreeQueue<audioFrameShort *> * queue;

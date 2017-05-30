@@ -641,7 +641,7 @@ void execThread::threadedFunction() {
 
 //===============================
 ofxVideoDataWriterThread::ofxVideoDataWriterThread() {
-    thread.setName("Video Thread");
+//    thread.setName("Video Thread");
 };
 
 void ofxVideoDataWriterThread::setup(HANDLE videoHandle_, lockFreeQueue<ofPixels *> * q) {
@@ -715,9 +715,8 @@ void ofxVideoDataWriterThread::threadedFunction() {
             delete frame;
         }
         else {
-            conditionMutex.lock();
-            condition.wait(conditionMutex);
-            conditionMutex.unlock();
+			std::unique_lock<std::mutex> lk(conditionMutex);
+            condition.wait(lk);
         }
     }
     
@@ -728,7 +727,7 @@ void ofxVideoDataWriterThread::threadedFunction() {
 }
 
 void ofxVideoDataWriterThread::signal() {
-    condition.signal();
+    condition.notify_one();
 }
 
 void ofxVideoDataWriterThread::setPipeNonBlocking() {
@@ -737,7 +736,7 @@ void ofxVideoDataWriterThread::setPipeNonBlocking() {
 
 //===============================
 ofxAudioDataWriterThread::ofxAudioDataWriterThread() {
-    thread.setName("Audio Thread");
+//    thread.setName("Audio Thread");
 };
 
 void ofxAudioDataWriterThread::setup(HANDLE audioHandle_, lockFreeQueue<audioFrameShort *> *q) {
@@ -802,10 +801,9 @@ void ofxAudioDataWriterThread::threadedFunction() {
             delete frame;
         }
         else {
-            conditionMutex.lock();
-            condition.wait(conditionMutex);
-            conditionMutex.unlock();
-        }
+			std::unique_lock<std::mutex> lk(conditionMutex);
+			condition.wait(lk);
+		}
     }
     
 
@@ -814,7 +812,7 @@ void ofxAudioDataWriterThread::threadedFunction() {
     CloseHandle(audioHandle);
 }
 void ofxAudioDataWriterThread::signal() {
-    condition.signal();
+    condition.notify_one();
 }
 
 void ofxAudioDataWriterThread::setPipeNonBlocking() {
